@@ -1891,3 +1891,4 @@ by apply Rle_d'_um.
 exact.
 Qed. (*  Bing_Shrinking_Theorem *)
 
+End BingShrinkingTheorem.
