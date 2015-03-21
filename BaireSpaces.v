@@ -1,5 +1,5 @@
-(***** The Baire Category Theorem for complete metric spaces *****)
-(*****************************************************************
+(** *** The Baire Category Theorem for complete metric spaces  by  Ken'ichi Kuga ****)
+(** ***************************************************************
 
 Theorem BaireCategoryTheorem :  complete d d_metric -> baire_space. 
 
@@ -993,9 +993,7 @@ apply open_ball_is_open.
 assumption.
 destruct (Lim D).
 (* assumption. (* <-DESN'T WORK-*)*)
-simpl. 
-simpl in HopenD.
-(** THIS simpl REVEALS THIS open D ISN'T THAT open D**)
+simpl. (** THIS simpl REVEALS THIS open D ISN'T THAT open D**)
 Print B_open.
 (*apply B_open_intro.*)
 Print IndexedFamily.
@@ -1231,3 +1229,4 @@ assumption.
 Qed. (* BaireCategoryTheorem *)
 
 End BaireSpaces.
+
