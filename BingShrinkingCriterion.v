@@ -1,4 +1,4 @@
-(***********************************************************)
+(** BingShrinkingCriterion.v by Ken'ichi Kuga **************)
 (*   Bing Shrinking Criterion                              *)
 (*          and                                            *)
 (*     Bing Shrinking Theorem for compact spaces           *)
@@ -1891,4 +1891,3 @@ by apply Rle_d'_um.
 exact.
 Qed. (*  Bing_Shrinking_Theorem *)
 
-End BingShrinkingTheorem.
