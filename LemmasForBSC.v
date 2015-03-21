@@ -1,16 +1,212 @@
-(**** LemmasForBSC.v ****)
+(** LemmasForBSC.v by Ken'ichi Kuga *)
+(** Lemmas for BingShrinkingCriterion.v **)
+
 Require Import ssreflect ssrbool.
+Require Import ClassicalChoice.
+Require Import FunctionalExtensionality.
 Require Import MetricSpaces.
 Require Export Compactness.
 Require Import Completeness.
 Require Import SubspaceTopology.
 Require Import WeakTopology.
+Require Import RationalsInReals.
 Require Export Subbases.
 Require Import Fourier.
 
+Open Scope R_scope.
+
+Section UnifCompact. 
+
+Variables X Y:Type.
+Variables (d:X->X->R) (d':Y->Y->R).
+Hypotheses (d_metric: metric d) (d'_metric: metric d').
+Let Xt := MetricTopology d d_metric.
+Let Yt := MetricTopology d' d'_metric.
+Variable f : point_set Xt -> point_set Yt.
+Hypotheses X_compact: compact Xt. (* Y_compact: compact Yt.*)
+ 
+(* Following lemma is uniform continuity of 
+           (x1,x2) |-> d' (f x1) (f x2) on compact (X times X) *)
+Lemma dist_uniform_on_compact: continuous f -> 
+forall eps:R, eps > 0 ->
+  exists delta:R, delta >0 /\ forall (x1:X) (x2:X),
+    d x1 x2 < delta -> d' (f x1) (f x2) < eps.
+Proof.
+move=> h_f_conti.
+suff HH: ~ (exists eps:R, eps > 0 /\ (forall delta:R, delta > 0 -> 
+  (exists (x1 x2:X), d x1 x2 < delta /\ d' (f x1) (f x2) >= eps))).
+  move=>eps h_eps_pos.
+  apply NNPP.
+    move=>h_Ne.
+    apply HH.
+    clear HH.
+    exists eps.
+    split.
+  by apply h_eps_pos.
+  move=>delta h_delta_pos.
+  apply NNPP.
+    move=> h_nExx.
+    apply h_Ne.
+    clear h_Ne.
+    exists delta.
+    split.
+  by apply h_delta_pos.
+  move=> x1 x2 h_dxx.
+    apply Rnot_ge_lt.
+    move=>h_d'ge.
+    apply h_nExx.
+    exists x1.
+    exists x2.
+    split.
+  by apply h_dxx.
+by apply h_d'ge.
+move=>h_Ee.
+destruct h_Ee as [eps [h_eps_pos h_d]].
+
+pose RR (n:nat) (xx: X*X):Prop :=
+    d (fst xx) (snd xx) < / INR (S n) /\ 
+    d' (f (fst xx)) (f (snd xx)) >= eps. 
+have exists_xx: exists choice_xx: nat -> X*X, 
+  forall n:nat, RR n (choice_xx n).
+apply choice.
+move=> n.
+destruct h_d with (/ INR (S n)) as [x1].
+red.
+apply Rinv_0_lt_compat.
+apply lt_0_INR.
+by apply lt_0_Sn.
+destruct H as [x2 [h_dxx h_d'ff]].
+exists (x1,x2).
+red.
+split.
+by apply h_dxx.
+by apply h_d'ff.
+destruct exists_xx as [choice_xx h_RRn].
+set xn:Net nat_DS Xt := fun n:nat => fst (choice_xx n).
+have Ex_x_0: exists x_0 :point_set Xt, net_cluster_point xn x_0.
+apply compact_impl_net_cluster_point.
+by apply X_compact.
+by apply (inhabits O).
+destruct Ex_x_0 as [x_0 h_x_0].
+red in h_x_0.
+have h_f_conti_at_x0: exists delta1:R, delta1 > 0 /\
+  forall x':point_set Xt,
+     d x_0 x' < delta1 -> d' (f x_0) (f x') < eps * /2.
+apply metric_space_fun_continuity_converse.
+by apply MetricTopology_metrizable.
+by apply MetricTopology_metrizable.
+apply continuous_func_continuous_everywhere.
+by apply h_f_conti.
+apply Rmult_gt_0_compat.
+by apply h_eps_pos.
+fourier. 
+destruct h_f_conti_at_x0 as [delta1 [h_d1_pos h_f_x_0]].
+set OB:= open_ball (point_set Xt) d x_0 (delta1 * /2).
+have h_n0: exists n0:nat, (n0 > 0)%nat /\ / (INR  n0) < delta1 * /2. 
+apply inverses_of_nats_approach_0.
+fourier.
+destruct h_n0 as [n0 [h_n0pos h_n0]].
+destruct h_x_0 with OB n0 as [n]. 
+simpl.
+have OBu: OB = FamilyUnion (Singleton OB).
+apply Extensionality_Ensembles; split; red; intros.
+apply family_union_intro with OB.
+by apply In_singleton.
+exact.
+destruct H.
+apply Singleton_inv in H.
+by rewrite H.
+rewrite OBu.
+apply B_open_intro . 
+move=> S h_OBS.
+apply Singleton_inv in h_OBS.
+rewrite<-h_OBS.
+rewrite/OB.
+apply indexed_union_intro with x_0.
+constructor.
+fourier.
+constructor.
+rewrite metric_zero.
+fourier.
+exact.
+destruct H as [h_n InOBxn].
+simpl in n.
+simpl in h_n.
+have h_npos: (n > 0)%nat.
+red.
+red in h_n0pos.
+apply lt_le_trans with n0.
+exact.
+exact.
+set x1:= fst (choice_xx n).
+set x2:= snd (choice_xx n).
+have xnn_x1: (xn n) = x1.
+rewrite/x1.
+by rewrite/xn.
+destruct InOBxn.
+rewrite xnn_x1 in H.
+have d'f0f1: d'(f x_0) (f x1) < eps * /2.
+apply h_f_x_0.
+apply Rlt_trans with (delta1 * /2).
+(* destruct InOBxn.
+rewrite<-xnn_x1.*)
+exact.
+fourier.
+have d'f0f2 : d' (f x_0) (f x2) < eps * /2.
+apply h_f_x_0.
+apply Rle_lt_trans with (d x_0 x1 + d x1 x2).
+by apply triangle_inequality.
+have d2 : delta1 = delta1 * /2 + delta1 * /2 by field.
+rewrite d2; clear d2.
+apply Rplus_lt_compat.
+exact.
+apply Rlt_trans with (/ INR (S n)). 
+destruct h_RRn with n.
+by rewrite/x1 /x2.
+apply Rlt_trans with (/ INR n). 
+apply Rinv_lt_contravar.
+apply Rmult_gt_0_compat.
+red.
+apply lt_0_INR.
+red in h_npos.
+exact.
+red.
+apply lt_0_INR.
+by apply lt_0_Sn.
+apply lt_INR.
+by apply lt_n_Sn.
+apply Rle_lt_trans with (/ INR n0).
+SearchAbout Rinv.
+apply Rle_Rinv.
+apply lt_0_INR.
+red in h_n0pos.
+exact.
+apply lt_0_INR.
+red in h_npos.
+exact.
+apply le_INR.
+exact.
+exact.
+have h_d'f1f2: d' (f x1) (f x2) < eps.
+have eps2: eps = eps * /2 + eps * /2 by field.
+rewrite eps2; clear eps2.
+apply Rle_lt_trans with (d' (f x1) (f x_0) + d' (f x_0) (f x2)).
+by apply triangle_inequality.
+apply Rplus_lt_compat.
+by rewrite metric_sym.
+exact.
+have h_d'f1f2e: d' (f x1) (f x2) >= eps.
+destruct h_RRn with n as [_ hd'].
+by rewrite/x1 /x2.
+move: h_d'f1f2e.
+apply Rlt_not_ge.
+exact.
+Qed.
+
+End UnifCompact.
+
 Section CompactComplete.
 
-Open Scope R_scope.
 
 Variable X:Type.
 Variable d:X->X->R.
@@ -80,7 +276,7 @@ Qed.
 
 End InvImage.
 
-
+(*
 Section SubB.
 
 Variable X: TopologicalSpace.
@@ -134,23 +330,8 @@ Qed.
  
               
 End SubB.
+*)
 
-Implicit Arguments subbasis [[X]].
-
-Section BFS.
-
-Variable X:Type.
-Variable S:Family X.
-
-Require Import FiniteIntersections.
-Check Build_TopologicalSpace_from_subbasis_subbasis.
-Check @subbasis.
-Print open_neighborhood_basis.
-
-
-End BFS. 
- 
-Open Scope R_scope.
 
 Section OpenBallinOpen.
 
@@ -343,3 +524,4 @@ by rewrite/subspace_inc.
 Qed.
 
 End MetricRestrictionMetrizes.
+
